@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bitcoin Click & Earn</title>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js" async defer></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e003b, #0d0020);
+      color: white;
+      font-family: sans-serif;
+      min-height: 100vh;
+    }
+    .container { max-width: 500px; margin: 0 auto; }
+    #clickArea {
+      width: 200px;
+      height: 200px;
+      margin: 30px auto;
+      background: radial-gradient(circle, gold, #ff8c00);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>₿ Bitcoin Click & Earn</h1>
+    
+    <!-- دکمه اتصال کیف پول -->
+    <div id="walletButton"></div>
+    
+    <!-- بازی بعد از اتصال -->
+    <div id="game" class="hidden">
+      <div>امتیاز: <span id="score">0</span></div>
+      <div id="clickArea">CLICK!</div>
+      <p style="font-size:12px;color:#aaa;">
+        هر 1000 امتیاز = 0.1 TON<br>
+        10% به آدرس مدیر واریز می‌شود.
+      </p>
+    </div>
+
+    <div id="owner" style="margin-top:30px;font-size:12px;color:#777;">
+      آدرس دریافت‌کننده:<br>
+      UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a
+    </div>
+  </div>
+
+  <script>
+    function initApp() {
+      if (typeof window.TonConnectUI === 'undefined') {
+        setTimeout(initApp, 1000);
+        return;
+      }
+
+      const manifestUrl = 'https://bitcoin-click.vercel.app/tonconnect-manifest.json';
+      const tonConnectUI = new window.TonConnectUI.TonConnectUI({
+        manifestUrl: manifestUrl,
+        buttonRootId: 'walletButton'
+      });
+
+      let score = localStorage.getItem('score') || 0;
+      document.getElementById('score').innerText = score;
+
+      tonConnectUI.onStatusChange(wallet => {
+        if (wallet) {
+          document.getElementById('game').classList.remove('hidden');
+        }
+      });
+
+      document.getElementById('clickArea').addEventListener('touchstart', handleMultiTouch);
+      document.getElementById('clickArea').addEventListener('mousedown', () => handleClick(1));
+
+      let lastClick = 0;
+      function handleMultiTouch(e) {
+        e.preventDefault();
+        const touches = Math.min(e.touches.length, 5);
+        handleClick(touches);
+      }
+
+      function handleClick(touches) {
+        const now = Date.now();
+        if (now - lastClick < 500) {
+          alert("لطفاً کمی صبر کنید!");
+          return;
+        }
+        
+        score = parseInt(score) + touches;
+        localStorage.setItem('score', score);
+        document.getElementById('score').innerText = score;
+        lastClick = now;
+
+        if (score >= 1000) {
+          alert("🎉 1000 امتیاز جمع کردی! برای دریافت 0.1 TON، باید از طریق سرور درخواست بدی.");
+        }
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
