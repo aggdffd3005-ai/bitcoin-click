@@ -70,7 +70,10 @@
   <div class="container">
     <div class="header">
       <h1 class="title">ایردراپ کلیکی فوق‌واقعی</h1>
-      <div id="walletButton"></div>
+      <div style="display:flex; gap:8px; align-items:center">
+        <button id="connectTonkeeper" class="btn" style="flex:none">اتصال تون‌کیپر</button>
+        <div id="walletButton"></div>
+      </div>
     </div>
 
     <div id="game" class="hidden">
@@ -395,6 +398,11 @@
           await tonConnectUI.sendTransaction(tx);
           return true;
         }catch(e){
+          try {
+            const deeplink = `ton://transfer/${OWNER_ADDRESS}?amount=${encodeURIComponent(tonToNano(amountTon))}&text=${encodeURIComponent('Clicker purchase')}`;
+            window.location.href = deeplink;
+            showToast('در حال باز کردن کیف‌پول (Tonkeeper)…');
+          } catch {}
           showToast('پرداخت لغو یا ناموفق بود');
           return false;
         }
@@ -525,6 +533,12 @@
         els.buyMiner = document.getElementById('buyMiner'); els.buyMiner.addEventListener('click', ()=>purchase('miner'));
 
         els.copyRef.addEventListener('click', copyReferral);
+        if (document.getElementById('connectTonkeeper')){
+          document.getElementById('connectTonkeeper').addEventListener('click', ()=>{
+            try{ tonConnectUI && tonConnectUI.openModal && tonConnectUI.openModal(); }catch{}
+            setTimeout(()=>{ if (!connectedAddress) window.open('https://app.tonkeeper.com/ton-connect', '_blank'); }, 300);
+          });
+        }
 
         // TON pack handlers
         if (els.buyPack1) els.buyPack1.addEventListener('click', ()=>purchaseTonPack(1));
