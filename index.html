@@ -141,6 +141,21 @@
         </div>
       </div>
 
+      <div class="card" id="tonPacks" style="margin-top:10px">
+        <h3>پک‌های TON (۱ TON به بالا)</h3>
+        <div class="subtle">هر 1 TON = <span class="mono" id="scorePerTon">10,000</span> امتیاز</div>
+        <div class="actions" style="margin-top:10px">
+          <button id="buyPack1" class="btn btn-accent" style="flex:none; min-width:100px">1 TON</button>
+          <button id="buyPack2" class="btn btn-accent" style="flex:none; min-width:100px">2 TON</button>
+          <button id="buyPack5" class="btn btn-accent" style="flex:none; min-width:100px">5 TON</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px">
+          <input id="customTonInput" inputmode="decimal" pattern="\\d*(\\.\\d{0,3})?" placeholder="مقدار TON (≥1)" class="mono" style="flex:1; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:#1a0b33; color:#fff; padding:8px 10px" />
+          <button id="buyPackCustom" class="btn" style="flex:none">خرید سفارشی</button>
+        </div>
+        <div class="subtle" id="packInfo" style="margin-top:6px"></div>
+      </div>
+
       <div class="ref card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px">
           <div style="font-weight:700">دعوت دوستان</div>
@@ -189,6 +204,14 @@
         regenPriceTon: document.getElementById('regenPriceTon'),
         minerValue: document.getElementById('minerValue'),
         minerPriceTon: document.getElementById('minerPriceTon'),
+        // TON packs
+        buyPack1: document.getElementById('buyPack1'),
+        buyPack2: document.getElementById('buyPack2'),
+        buyPack5: document.getElementById('buyPack5'),
+        buyPackCustom: document.getElementById('buyPackCustom'),
+        customTonInput: document.getElementById('customTonInput'),
+        packInfo: document.getElementById('packInfo'),
+        scorePerTonEl: document.getElementById('scorePerTon'),
         copyRef: document.getElementById('copyRef'),
         referredBy: document.getElementById('referredBy'),
         toast: document.getElementById('toast'),
@@ -282,6 +305,7 @@
         els.energyMaxValue.textContent = state.energyMax;
         els.regenValue.textContent = state.energyRegenPerSec.toFixed(2);
         els.minerValue.textContent = state.autoMinerPerSec.toFixed(2);
+        if (els.scorePerTonEl){ els.scorePerTonEl.textContent = formatNumber(SCORE_PER_TON); }
 
         // TON prices
         els.tapPriceTon.textContent = `${formatTon(priceTonTap(state.upgrades.tap))} TON`;
@@ -306,6 +330,7 @@
       function priceTonRegen(count){ return +(TON_BASE.regen * Math.pow(TON_GROWTH.regen, count)).toFixed(3); }
       function priceTonMiner(count){ return +(TON_BASE.miner * Math.pow(TON_GROWTH.miner, count)).toFixed(3); }
       function tonToNano(ton){ return BigInt(Math.round(ton * 1e9)).toString(); }
+      const SCORE_PER_TON = 10000; // 1 TON gives 10,000 points
 
       function applyOfflineProgress(){
         const now = Date.now();
@@ -386,6 +411,18 @@
         if (ok){
           applyUpgrade(kind);
           showToast('خرید موفق بود');
+        }
+      }
+
+      async function purchaseTonPack(amountTon){
+        if (amountTon < 1){ showToast('حداقل 1 TON'); return; }
+        const ok = await sendTonPayment(amountTon);
+        if (ok){
+          const gained = Math.floor(amountTon * SCORE_PER_TON);
+          state.score += gained;
+          updateUI();
+          saveState(true);
+          showToast(`+${formatNumber(gained)} امتیاز بابت ${formatTon(amountTon)} TON`);
         }
       }
 
@@ -488,6 +525,28 @@
         els.buyMiner = document.getElementById('buyMiner'); els.buyMiner.addEventListener('click', ()=>purchase('miner'));
 
         els.copyRef.addEventListener('click', copyReferral);
+
+        // TON pack handlers
+        if (els.buyPack1) els.buyPack1.addEventListener('click', ()=>purchaseTonPack(1));
+        if (els.buyPack2) els.buyPack2.addEventListener('click', ()=>purchaseTonPack(2));
+        if (els.buyPack5) els.buyPack5.addEventListener('click', ()=>purchaseTonPack(5));
+        if (els.buyPackCustom) els.buyPackCustom.addEventListener('click', ()=>{
+          const raw = (els.customTonInput.value || '').replace(',', '.');
+          const val = parseFloat(raw);
+          if (isNaN(val) || val < 1){ showToast('مقدار نامعتبر (≥1)'); return; }
+          const rounded = Math.floor(val * 1000) / 1000; // up to 3 dp
+          purchaseTonPack(rounded);
+        });
+        if (els.customTonInput) els.customTonInput.addEventListener('input', ()=>{
+          const raw = (els.customTonInput.value || '').replace(',', '.');
+          const val = parseFloat(raw);
+          if (!isNaN(val) && val >= 1){
+            const pts = Math.floor(val * SCORE_PER_TON);
+            els.packInfo.textContent = `دریافت امتیاز: ${formatNumber(pts)}`;
+          } else {
+            els.packInfo.textContent = '';
+          }
+        });
       }
 
       function init(){
