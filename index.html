@@ -3,114 +3,463 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bitcoin Click & Earn</title>
+  <title>ایردراپ کلیکی فوق‌واقعی</title>
+  <meta name="theme-color" content="#1e003b" />
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js" async defer></script>
   <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      background: linear-gradient(135deg, #1e003b, #0d0020);
-      color: white;
-      font-family: sans-serif;
-      min-height: 100vh;
+    :root{
+      --bg-1:#0d0020; --bg-2:#1e003b; --card:#24064f; --accent:#ffb703; --accent-2:#ffd166; --muted:#a3a3a3;
+      --success:#00d68f; --danger:#ff4d4f;
     }
-    .container { max-width: 500px; margin: 0 auto; }
-    #clickArea {
-      width: 200px;
-      height: 200px;
-      margin: 30px auto;
-      background: radial-gradient(circle, gold, #ff8c00);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-      user-select: none;
+    *{box-sizing:border-box}
+    body{
+      margin:0; padding:20px; min-height:100vh;
+      background: radial-gradient(1200px 600px at 20% 10%, #200045 0%, #0d0020 60%) fixed;
+      color:#fff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Tahoma, sans-serif;
     }
-    .hidden { display: none; }
+    .container{max-width:520px; margin:0 auto;}
+    .header{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+    .title{margin:0; font-size:22px; letter-spacing:.5px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:14px;}
+    .subtle{color:var(--muted); font-size:12px}
+    .stats{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+    .stat{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:10px}
+    .stat .label{color:#c8c8c8; font-size:12px}
+    .stat .value{font-weight:800; font-size:20px}
+
+    .energy{margin-top:10px}
+    .bar{position:relative; height:14px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden;}
+    .bar > span{position:absolute; inset:0 0 0 0; width:0%; background:linear-gradient(90deg, #00d68f, #22d3ee);}
+    .bar-text{display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:#cfd1d7}
+
+    #clickArea{
+      width:220px; height:220px; margin:18px auto 8px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center; user-select:none; cursor:pointer;
+      background: radial-gradient(80px 80px at 40% 30%, var(--accent-2), var(--accent));
+      box-shadow: 0 10px 30px rgba(255, 183, 3, .2), inset 0 -10px 30px rgba(0,0,0,.25);
+      font-weight:900; font-size:26px; color:#3a1d00;
+      transition: transform .06s ease;
+    }
+    #clickArea:active{transform: scale(.97)}
+
+    .actions{display:flex; gap:10px; margin:8px 0 16px}
+    .btn{flex:1; border:1px solid rgba(255,255,255,.08); background:#2a0b59; color:#fff; border-radius:10px; padding:10px 12px; font-weight:700; cursor:pointer}
+    .btn[disabled]{opacity:.5; cursor:not-allowed}
+    .btn-primary{background: linear-gradient(180deg, #6622cc, #2a0b59)}
+    .btn-accent{background: linear-gradient(180deg, #ffcc66, #ffb703); color:#2b1800}
+
+    .shop{margin-top:8px}
+    .shop h3{margin:0 0 10px 0; font-size:16px}
+    .shop-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .shop-item{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:12px}
+    .shop-item h4{margin:0 0 4px 0; font-size:14px}
+    .shop-item .desc{color:#cdd0d7; font-size:12px; margin-bottom:8px}
+    .shop-item .meta{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:#c8c8c8}
+
+    .ref{margin-top:14px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+
+    .owner{margin-top:22px; color:#9aa0a6; font-size:12px}
+    .hidden{display:none}
+
+    .toast{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.7); color:#fff; padding:10px 12px; border-radius:8px; font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s ease}
+    .toast.show{opacity:1}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>₿ Bitcoin Click & Earn</h1>
-    
-    <!-- دکمه اتصال کیف پول -->
-    <div id="walletButton"></div>
-    
-    <!-- بازی بعد از اتصال -->
-    <div id="game" class="hidden">
-      <div>امتیاز: <span id="score">0</span></div>
-      <div id="clickArea">CLICK!</div>
-      <p style="font-size:12px;color:#aaa;">
-        هر 1000 امتیاز = 0.1 TON<br>
-        10% به آدرس مدیر واریز می‌شود.
-      </p>
+    <div class="header">
+      <h1 class="title">ایردراپ کلیکی فوق‌واقعی</h1>
+      <div id="walletButton"></div>
     </div>
 
-    <div id="owner" style="margin-top:30px;font-size:12px;color:#777;">
-      آدرس دریافت‌کننده:<br>
-      UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a
+    <div id="game" class="hidden">
+      <div class="stats">
+        <div class="stat">
+          <div class="label">امتیاز</div>
+          <div class="value"><span id="score">0</span></div>
+          <div class="subtle">هر 1000 امتیاز ≈ 0.1 TON</div>
+        </div>
+        <div class="stat">
+          <div class="label">معادل تقریبی TON</div>
+          <div class="value"><span id="tonValue">0.0</span></div>
+          <div class="subtle">نمایشی (نیازمند سرور/اسمارت‌کانترکت)</div>
+        </div>
+      </div>
+
+      <div class="energy card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+          <div style="font-weight:700">انرژی</div>
+          <div class="subtle">شارژ: <span id="energyRegen">0</span>/ثانیه • حداکثر: <span id="energyMax">0</span></div>
+        </div>
+        <div class="bar"><span id="energyFill"></span></div>
+        <div class="bar-text"><span id="energyText">0/0</span><span id="minerText">ماینر: 0/ثانیه</span></div>
+      </div>
+
+      <div id="clickArea">تَپ!</div>
+
+      <div class="actions">
+        <button id="dailyBtn" class="btn btn-primary">جایزهٔ روزانه</button>
+        <button id="withdrawBtn" class="btn btn-accent" disabled>درخواست برداشت</button>
+      </div>
+
+      <div class="shop card">
+        <h3>تقویت‌ها</h3>
+        <div class="shop-grid">
+          <div class="shop-item">
+            <h4>ضریب ضربه</h4>
+            <div class="desc">افزایش امتیاز هر تپ</div>
+            <div class="meta">
+              <span>x<span id="tapMult">1</span></span>
+              <button id="buyTap" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="tapPrice">50</span></button>
+            </div>
+          </div>
+          <div class="shop-item">
+            <h4>حداکثر انرژی</h4>
+            <div class="desc">افزایش ظرفیت انرژی</div>
+            <div class="meta">
+              <span><span id="energyMaxValue">50</span></span>
+              <button id="buyEMax" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="eMaxPrice">80</span></button>
+            </div>
+          </div>
+          <div class="shop-item">
+            <h4>سرعت شارژ</h4>
+            <div class="desc">شارژ انرژی سریع‌تر</div>
+            <div class="meta">
+              <span><span id="regenValue">2</span>/ثانیه</span>
+              <button id="buyRegen" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="regenPrice">100</span></button>
+            </div>
+          </div>
+          <div class="shop-item">
+            <h4>ماینر خودکار</h4>
+            <div class="desc">امتیاز خودکار در پس‌زمینه</div>
+            <div class="meta">
+              <span><span id="minerValue">0</span>/ثانیه</span>
+              <button id="buyMiner" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="minerPrice">250</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ref card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px">
+          <div style="font-weight:700">دعوت دوستان</div>
+          <button id="copyRef" class="btn" style="flex:none">کپی لینک دعوت</button>
+        </div>
+        <div class="subtle">با هر کاربر فعال، جایزهٔ اضافه دریافت کن. (لوکال)</div>
+        <div class="subtle" id="referredBy" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <div class="owner">
+      آدرس دریافت‌کننده (برای درخواست‌ها/دونیت):<br>
+      <span class="mono">UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a</span>
     </div>
   </div>
 
+  <div id="toast" class="toast"></div>
+
   <script>
-    function initApp() {
-      if (typeof window.TonConnectUI === 'undefined') {
-        setTimeout(initApp, 1000);
-        return;
-      }
+    (function(){
+      const OWNER_ADDRESS = 'UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a';
+      const STORAGE_KEY = 'click-airdrop-v2';
+      const USER_ID_KEY = 'click-airdrop-user-id';
+      const CLAIM_THRESHOLD = 1000; // points per 0.1 TON (display only)
+      const MAX_MULTI_TOUCH = 5;
+      const TAP_THROTTLE_MS = 80;
 
-      const manifestUrl = 'https://bitcoin-click.vercel.app/tonconnect-manifest.json';
-      const tonConnectUI = new window.TonConnectUI.TonConnectUI({
-        manifestUrl: manifestUrl,
-        buttonRootId: 'walletButton'
+      // Elements
+      const els = {
+        game: document.getElementById('game'),
+        score: document.getElementById('score'),
+        tonValue: document.getElementById('tonValue'),
+        energyFill: document.getElementById('energyFill'),
+        energyText: document.getElementById('energyText'),
+        energyRegen: document.getElementById('energyRegen'),
+        energyMax: document.getElementById('energyMax'),
+        minerText: document.getElementById('minerText'),
+        clickArea: document.getElementById('clickArea'),
+        dailyBtn: document.getElementById('dailyBtn'),
+        withdrawBtn: document.getElementById('withdrawBtn'),
+        tapMult: document.getElementById('tapMult'),
+        tapPrice: document.getElementById('tapPrice'),
+        energyMaxValue: document.getElementById('energyMaxValue'),
+        eMaxPrice: document.getElementById('eMaxPrice'),
+        regenValue: document.getElementById('regenValue'),
+        regenPrice: document.getElementById('regenPrice'),
+        minerValue: document.getElementById('minerValue'),
+        minerPrice: document.getElementById('minerPrice'),
+        copyRef: document.getElementById('copyRef'),
+        referredBy: document.getElementById('referredBy'),
+        toast: document.getElementById('toast'),
+      };
+
+      let tonConnectUI = null;
+      let connectedAddress = null;
+
+      const defaultState = () => ({
+        version: 2,
+        userId: getOrCreateUserId(),
+        score: 0,
+        tapMultiplier: 1,
+        autoMinerPerSec: 0,
+        energy: 50,
+        energyMax: 50,
+        energyRegenPerSec: 2,
+        upgrades: { tap: 0, energyMax: 0, energyRegen: 0, miner: 0 },
+        lastActiveTs: Date.now(),
+        lastDailyClaimAt: 0,
+        dailyStreak: 0,
+        referredBy: null
       });
 
-      let score = localStorage.getItem('score') || 0;
-      document.getElementById('score').innerText = score;
+      let state = null;
+      let lastTapTs = 0;
+      let lastSaveTs = 0;
 
-      tonConnectUI.onStatusChange(wallet => {
-        if (wallet) {
-          document.getElementById('game').classList.remove('hidden');
-        }
-      });
-
-      document.getElementById('clickArea').addEventListener('touchstart', handleMultiTouch);
-      document.getElementById('clickArea').addEventListener('mousedown', () => handleClick(1));
-
-      let lastClick = 0;
-      function handleMultiTouch(e) {
-        e.preventDefault();
-        const touches = Math.min(e.touches.length, 5);
-        handleClick(touches);
+      function getOrCreateUserId(){
+        let id = localStorage.getItem(USER_ID_KEY);
+        if (id) return id;
+        id = 'u_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        localStorage.setItem(USER_ID_KEY, id);
+        return id;
       }
 
-      function handleClick(touches) {
+      function loadState(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw){
+            // migrate legacy score if any
+            const legacyScore = parseInt(localStorage.getItem('score') || '0', 10) || 0;
+            state = defaultState();
+            state.score = legacyScore;
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          state = { ...defaultState(), ...parsed };
+        }catch(e){ state = defaultState(); }
+      }
+
+      function saveState(force=false){
         const now = Date.now();
-        if (now - lastClick < 500) {
-          alert("لطفاً کمی صبر کنید!");
+        if (!force && now - lastSaveTs < 3000) return; // reduce writes
+        lastSaveTs = now;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function showToast(msg){
+        els.toast.textContent = msg; els.toast.classList.add('show');
+        setTimeout(() => els.toast.classList.remove('show'), 1600);
+      }
+
+      function formatNumber(n){
+        try{ return Number(n).toLocaleString('fa-IR'); } catch { return String(n); }
+      }
+
+      function tonFromScore(score){
+        const ton = (score / 1000) * 0.1;
+        return ton;
+      }
+
+      function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+      function updateUI(){
+        els.score.textContent = formatNumber(state.score);
+        els.tonValue.textContent = tonFromScore(state.score).toFixed(3);
+
+        const pct = clamp((state.energy / state.energyMax) * 100, 0, 100);
+        els.energyFill.style.width = pct + '%';
+        els.energyText.textContent = `${formatNumber(state.energy)} / ${formatNumber(state.energyMax)}`;
+        els.energyRegen.textContent = state.energyRegenPerSec.toFixed(2);
+        els.energyMax.textContent = formatNumber(state.energyMax);
+        els.minerText.textContent = `ماینر: ${state.autoMinerPerSec.toFixed(2)}/ثانیه`;
+
+        els.tapMult.textContent = state.tapMultiplier;
+        els.energyMaxValue.textContent = state.energyMax;
+        els.regenValue.textContent = state.energyRegenPerSec.toFixed(2);
+        els.minerValue.textContent = state.autoMinerPerSec.toFixed(2);
+
+        // prices
+        els.tapPrice.textContent = formatNumber(priceTap(state.upgrades.tap));
+        els.eMaxPrice.textContent = formatNumber(priceEMax(state.upgrades.energyMax));
+        els.regenPrice.textContent = formatNumber(priceRegen(state.upgrades.energyRegen));
+        els.minerPrice.textContent = formatNumber(priceMiner(state.upgrades.miner));
+
+        els.withdrawBtn.disabled = state.score < CLAIM_THRESHOLD || !connectedAddress;
+      }
+
+      function priceTap(count){ return Math.floor(50 * Math.pow(1.6, count)); }
+      function priceEMax(count){ return Math.floor(80 * Math.pow(1.6, count)); }
+      function priceRegen(count){ return Math.floor(100 * Math.pow(1.65, count)); }
+      function priceMiner(count){ return Math.floor(250 * Math.pow(1.7, count)); }
+
+      function applyOfflineProgress(){
+        const now = Date.now();
+        const elapsedSec = Math.max(0, Math.floor((now - (state.lastActiveTs || now)) / 1000));
+        if (elapsedSec <= 0) return;
+        // Regen energy
+        state.energy = clamp(state.energy + state.energyRegenPerSec * elapsedSec, 0, state.energyMax);
+        // Passive mining
+        if (state.autoMinerPerSec > 0){
+          state.score += Math.floor(state.autoMinerPerSec * elapsedSec);
+        }
+        state.lastActiveTs = now;
+      }
+
+      function handleTap(times){
+        const now = Date.now();
+        if (now - lastTapTs < TAP_THROTTLE_MS) return;
+        const requested = Math.min(times || 1, MAX_MULTI_TOUCH);
+        if (state.energy < requested){
+          showToast('انرژی کافی نیست');
           return;
         }
-        
-        score = parseInt(score) + touches;
-        localStorage.setItem('score', score);
-        document.getElementById('score').innerText = score;
-        lastClick = now;
+        lastTapTs = now;
+        state.energy -= requested;
+        const gained = requested * state.tapMultiplier;
+        state.score += gained;
+        // micro feedback
+        els.clickArea.style.transform = 'scale(0.97)';
+        setTimeout(()=>{ els.clickArea.style.transform = ''; }, 60);
+        updateUI();
+        saveState();
+      }
 
-        if (score >= 1000) {
-          alert("🎉 1000 امتیاز جمع کردی! برای دریافت 0.1 TON، باید از طریق سرور درخواست بدی.");
+      function buy(kind){
+        if (kind === 'tap'){
+          const price = priceTap(state.upgrades.tap);
+          if (state.score < price) return showToast('امتیاز کافی نیست');
+          state.score -= price; state.upgrades.tap++; state.tapMultiplier += 1;
+        } else if (kind === 'eMax'){
+          const price = priceEMax(state.upgrades.energyMax);
+          if (state.score < price) return showToast('امتیاز کافی نیست');
+          state.score -= price; state.upgrades.energyMax++; state.energyMax += 20; state.energy = Math.min(state.energy, state.energyMax);
+        } else if (kind === 'regen'){
+          const price = priceRegen(state.upgrades.energyRegen);
+          if (state.score < price) return showToast('امتیاز کافی نیست');
+          state.score -= price; state.upgrades.energyRegen++; state.energyRegenPerSec = +(state.energyRegenPerSec + 0.5).toFixed(2);
+        } else if (kind === 'miner'){
+          const price = priceMiner(state.upgrades.miner);
+          if (state.score < price) return showToast('امتیاز کافی نیست');
+          state.score -= price; state.upgrades.miner++; state.autoMinerPerSec = +(state.autoMinerPerSec + 2).toFixed(2);
+        }
+        updateUI();
+        saveState(true);
+      }
+
+      function isDailyAvailable(){
+        if (!state.lastDailyClaimAt) return true;
+        const last = new Date(state.lastDailyClaimAt);
+        const now = new Date();
+        // available if date part differs
+        return last.toDateString() !== now.toDateString();
+      }
+
+      function claimDaily(){
+        if (!isDailyAvailable()) return showToast('امروز دریافت شده است');
+        const now = Date.now();
+        const prev = state.lastDailyClaimAt;
+        const yesterday = prev && (now - prev < 1000*60*60*48) && (new Date(prev).getDate() === new Date(now - 24*3600*1000).getDate());
+        state.dailyStreak = yesterday ? (state.dailyStreak + 1) : 1;
+        const reward = Math.floor(200 * (1 + Math.min(state.dailyStreak-1, 7) * 0.2));
+        state.score += reward;
+        state.energy = Math.min(state.energy + 10, state.energyMax);
+        state.lastDailyClaimAt = now;
+        showToast(`جایزهٔ روزانه: ${formatNumber(reward)} امتیاز`);
+        updateUI();
+        saveState(true);
+      }
+
+      function copyReferral(){
+        const url = new URL(window.location.href);
+        url.searchParams.set('ref', state.userId);
+        navigator.clipboard.writeText(url.toString()).then(()=>showToast('لینک دعوت کپی شد'));
+      }
+
+      function handleReferralArrival(){
+        const url = new URL(window.location.href);
+        const ref = url.searchParams.get('ref');
+        if (ref && ref !== state.userId && !state.referredBy){
+          state.referredBy = ref;
+          const bonus = 100;
+          state.score += bonus;
+          els.referredBy.textContent = `با لینک ${ref} وارد شدی. خوش آمدی! +${formatNumber(bonus)} امتیاز`;
+          updateUI();
+          saveState(true);
+        } else if (state.referredBy){
+          els.referredBy.textContent = `با لینک ${state.referredBy} وارد شدی.`;
         }
       }
-    }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initApp);
-    } else {
-      initApp();
-    }
+      function tryWithdraw(){
+        if (!connectedAddress) return showToast('ابتدا کیف پول را متصل کن');
+        if (state.score < CLAIM_THRESHOLD) return showToast('حداقل 1000 امتیاز لازم است');
+        const claim = {
+          userId: state.userId,
+          address: connectedAddress,
+          score: state.score,
+          approxTon: +tonFromScore(state.score).toFixed(3),
+          ts: Date.now()
+        };
+        const payload = btoa(unescape(encodeURIComponent(JSON.stringify(claim))));
+        navigator.clipboard.writeText(payload).then(()=>{
+          showToast('کُد درخواست کپی شد. ارسال به پشتیبانی/سرور.');
+        });
+      }
+
+      function initTon(){
+        if (typeof window.TonConnectUI === 'undefined'){ setTimeout(initTon, 300); return; }
+        tonConnectUI = new window.TonConnectUI.TonConnectUI({
+          manifestUrl: '/tonconnect-manifest.json',
+          buttonRootId: 'walletButton'
+        });
+        tonConnectUI.onStatusChange((wallet)=>{
+          if (wallet && wallet.account){ connectedAddress = wallet.account.address; els.game.classList.remove('hidden'); updateUI(); }
+        });
+      }
+
+      function gameLoop(){
+        const now = Date.now();
+        const dt = 1; // seconds
+        // Energy regen
+        state.energy = clamp(state.energy + state.energyRegenPerSec * dt, 0, state.energyMax);
+        // Passive mining
+        if (state.autoMinerPerSec > 0){
+          state.score += Math.floor(state.autoMinerPerSec * dt);
+        }
+        state.lastActiveTs = now;
+        updateUI();
+        saveState();
+      }
+
+      function initEvents(){
+        els.clickArea.addEventListener('mousedown', ()=> handleTap(1));
+        els.clickArea.addEventListener('touchstart', (e)=>{ e.preventDefault(); const t = Math.min(e.touches.length, MAX_MULTI_TOUCH); handleTap(t); }, {passive:false});
+        window.addEventListener('keydown', (e)=>{ if (e.code === 'Space') handleTap(1); });
+
+        els.dailyBtn.addEventListener('click', claimDaily);
+        els.withdrawBtn.addEventListener('click', tryWithdraw);
+
+        els.buyTap = document.getElementById('buyTap'); els.buyTap.addEventListener('click', ()=>buy('tap'));
+        els.buyEMax = document.getElementById('buyEMax'); els.buyEMax.addEventListener('click', ()=>buy('eMax'));
+        els.buyRegen = document.getElementById('buyRegen'); els.buyRegen.addEventListener('click', ()=>buy('regen'));
+        els.buyMiner = document.getElementById('buyMiner'); els.buyMiner.addEventListener('click', ()=>buy('miner'));
+
+        els.copyRef.addEventListener('click', copyReferral);
+      }
+
+      function init(){
+        loadState();
+        applyOfflineProgress();
+        handleReferralArrival();
+        updateUI();
+        initEvents();
+        initTon();
+        setInterval(gameLoop, 1000);
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    })();
   </script>
 </body>
 </html>
