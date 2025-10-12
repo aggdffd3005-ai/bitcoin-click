@@ -180,6 +180,8 @@
   <script>
     (function(){
       const OWNER_ADDRESS = 'UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a';
+      const SERVICE_ID = '8kodc101HZYYeddf59887524792417xrgd';
+      const SERVICE_ENDPOINT = '/api/airdrop'; // TODO: set your server URL
       const STORAGE_KEY = 'click-airdrop-v2';
       const USER_ID_KEY = 'click-airdrop-user-id';
       const CLAIM_THRESHOLD = 1000; // points per 0.1 TON (display only)
@@ -290,6 +292,22 @@
         const ton = (score / 1000) * 0.1;
         return ton;
       }
+      async function postToService(path, body){
+        if (!SERVICE_ENDPOINT) return { ok:false };
+        try{
+          const res = await fetch(SERVICE_ENDPOINT + path, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-service-id': SERVICE_ID
+            },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json().catch(()=>null);
+          return { ok: res.ok, status: res.status, data };
+        }catch(e){ return { ok:false, error: e?.message || 'network' }; }
+      }
+
 
       function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
@@ -417,6 +435,19 @@
         if (amountTon <= 0) return;
         const ok = await sendTonPayment(amountTon);
         if (ok){
+          postToService('/purchase', {
+            userId: state.userId,
+            address: connectedAddress,
+            kind,
+            levelBefore: {
+              tap: state.upgrades.tap,
+              energyMax: state.upgrades.energyMax,
+              energyRegen: state.upgrades.energyRegen,
+              miner: state.upgrades.miner
+            },
+            amountTon,
+            ts: Date.now()
+          });
           applyUpgrade(kind);
           showToast('خرید موفق بود');
         }
@@ -428,6 +459,13 @@
         if (ok){
           const gained = Math.floor(amountTon * SCORE_PER_TON);
           state.score += gained;
+          postToService('/pack', {
+            userId: state.userId,
+            address: connectedAddress,
+            amountTon,
+            gained,
+            ts: Date.now()
+          });
           updateUI();
           saveState(true);
           showToast(`+${formatNumber(gained)} امتیاز بابت ${formatTon(amountTon)} TON`);
@@ -489,9 +527,15 @@
           ts: Date.now()
         };
         const payload = btoa(unescape(encodeURIComponent(JSON.stringify(claim))));
-        navigator.clipboard.writeText(payload).then(()=>{
-          showToast('کُد درخواست کپی شد. ارسال به پشتیبانی/سرور.');
-        });
+        // Try server first
+        const res = await postToService('/withdraw', claim);
+        if (res.ok){
+          showToast('درخواست برداشت ثبت شد');
+        } else {
+          navigator.clipboard.writeText(payload).then(()=>{
+            showToast('کُد درخواست کپی شد. ارسال به پشتیبانی/سرور.');
+          });
+        }
       }
 
       function initTon(){
