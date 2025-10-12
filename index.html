@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ایردراپ کلیکی فوق‌واقعی</title>
   <meta name="theme-color" content="#1e003b" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js" async defer></script>
   <style>
     :root{
@@ -224,6 +225,8 @@
 
       let tonConnectUI = null;
       let connectedAddress = null;
+      let tg = null; // Telegram WebApp instance
+      let tgInitData = '';
 
       const defaultState = () => ({
         version: 2,
@@ -246,6 +249,16 @@
       let lastSaveTs = 0;
 
       function getOrCreateUserId(){
+        // Prefer Telegram user id if inside Telegram WebApp
+        try{
+          const tgUser = window?.Telegram?.WebApp?.initDataUnsafe?.user;
+          if (tgUser?.id){
+            const tgId = 'tg_' + String(tgUser.id);
+            const existing = localStorage.getItem(USER_ID_KEY);
+            if (existing !== tgId){ localStorage.setItem(USER_ID_KEY, tgId); }
+            return tgId;
+          }
+        }catch{}
         let id = localStorage.getItem(USER_ID_KEY);
         if (id) return id;
         id = 'u_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -299,7 +312,8 @@
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-service-id': SERVICE_ID
+              'x-service-id': SERVICE_ID,
+              ...(tgInitData ? { 'x-telegram-init-data': tgInitData } : {})
             },
             body: JSON.stringify(body)
           });
@@ -504,11 +518,14 @@
       function handleReferralArrival(){
         const url = new URL(window.location.href);
         const ref = url.searchParams.get('ref');
-        if (ref && ref !== state.userId && !state.referredBy){
-          state.referredBy = ref;
+        // Telegram start_param support
+        const tgRef = window?.Telegram?.WebApp?.initDataUnsafe?.start_param;
+        const referral = ref || tgRef || null;
+        if (referral && referral !== state.userId && !state.referredBy){
+          state.referredBy = referral;
           const bonus = 100;
           state.score += bonus;
-          els.referredBy.textContent = `با لینک ${ref} وارد شدی. خوش آمدی! +${formatNumber(bonus)} امتیاز`;
+          els.referredBy.textContent = `با لینک ${referral} وارد شدی. خوش آمدی! +${formatNumber(bonus)} امتیاز`;
           updateUI();
           saveState(true);
         } else if (state.referredBy){
@@ -547,6 +564,17 @@
         tonConnectUI.onStatusChange((wallet)=>{
           if (wallet && wallet.account){ connectedAddress = wallet.account.address; els.game.classList.remove('hidden'); updateUI(); }
         });
+      }
+
+      function initTelegram(){
+        try{
+          if (window.Telegram && window.Telegram.WebApp){
+            tg = window.Telegram.WebApp;
+            tgInitData = tg.initData || '';
+            tg.ready();
+            tg.expand();
+          }
+        }catch{}
       }
 
       function gameLoop(){
@@ -608,6 +636,7 @@
       }
 
       function init(){
+        initTelegram();
         loadState();
         applyOfflineProgress();
         handleReferralArrival();
