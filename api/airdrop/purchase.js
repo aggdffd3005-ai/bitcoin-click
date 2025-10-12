@@ -23,5 +23,9 @@ export default async function handler(req, res) {
   const initData = req.headers['x-telegram-init-data'] || '';
   const body = await readJson(req);
   console.log('purchase', { userId: body.userId, address: body.address, kind: body.kind, amountTon: body.amountTon, tg: !!initData });
+  try {
+    const { store } = await import('./_lib/store.js');
+    await store.markPurchase(String(body.userId || 'unknown'), Number(body.amountTon || 0));
+  } catch {}
   res.status(200).json({ ok: true, received: true });
 }
