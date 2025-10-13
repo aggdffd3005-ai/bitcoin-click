@@ -40,6 +40,10 @@
       box-shadow: 0 10px 30px rgba(255, 183, 3, .2), inset 0 -10px 30px rgba(0,0,0,.25);
       font-weight:900; font-size:26px; color:#3a1d00;
       transition: transform .06s ease;
+      touch-action: none; /* prevent browser gestures */
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
     }
     #clickArea:active{transform: scale(.97)}
 
@@ -593,7 +597,29 @@
 
       function initEvents(){
         els.clickArea.addEventListener('mousedown', ()=> handleTap(1));
-        els.clickArea.addEventListener('touchstart', (e)=>{ e.preventDefault(); const t = Math.min(e.touches.length, MAX_MULTI_TOUCH); handleTap(t); }, {passive:false});
+        // Aggregate multi-touch within a short window
+        let touchAggregate = 0;
+        let touchTimer = null;
+        const flushTouches = () => {
+          if (touchAggregate > 0) handleTap(Math.min(touchAggregate, MAX_MULTI_TOUCH));
+          touchAggregate = 0; touchTimer = null;
+        };
+        els.clickArea.addEventListener('touchstart', (e)=>{
+          e.preventDefault();
+          // count new touches only (changedTouches)
+          const newly = (e.changedTouches && e.changedTouches.length) ? e.changedTouches.length : e.touches.length;
+          touchAggregate += newly;
+          if (!touchTimer) touchTimer = setTimeout(flushTouches, 60);
+        }, {passive:false});
+        els.clickArea.addEventListener('touchend', (e)=>{
+          e.preventDefault();
+          // finishing gesture quickly triggers flush
+          if (!touchTimer) touchTimer = setTimeout(flushTouches, 60);
+        }, {passive:false});
+        els.clickArea.addEventListener('touchcancel', (e)=>{
+          e.preventDefault();
+          if (!touchTimer) touchTimer = setTimeout(flushTouches, 60);
+        }, {passive:false});
         window.addEventListener('keydown', (e)=>{ if (e.code === 'Space') handleTap(1); });
 
         els.dailyBtn.addEventListener('click', claimDaily);
