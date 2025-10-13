@@ -1,0 +1,6 @@
+# Pretty URLs for PHP API endpoints on Apache
+RewriteEngine On
+# Route /api/airdrop/<name> to /api/airdrop/<name>.php
+RewriteRule ^api/airdrop/([A-Za-z0-9_\-]+)$ api/airdrop/$1.php [L,NC]
+# Serve index.html for root and unknown paths (SPA fallback)
+DirectoryIndex index.html
