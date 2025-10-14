@@ -667,6 +667,8 @@
         applyOfflineProgress();
         handleReferralArrival();
         updateUI();
+        // Show game UI even before wallet connect; purchases/withdraw will require wallet
+        try { els.game.classList.remove('hidden'); } catch {}
         initEvents();
         initTon();
         setInterval(gameLoop, 1000);
