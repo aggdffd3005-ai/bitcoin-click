@@ -69,6 +69,11 @@
 
     .toast{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.7); color:#fff; padding:10px 12px; border-radius:8px; font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s ease}
     .toast.show{opacity:1}
+
+    .section{display:block}
+    .nav{position:sticky; bottom:0; margin-top:12px; display:grid; grid-template-columns:repeat(6,1fr); gap:8px}
+    .nav .tab{border:1px solid rgba(255,255,255,.08); background:#1a0b33; color:#fff; border-radius:10px; padding:8px 6px; font-size:12px; cursor:pointer}
+    .nav .tab.active{background:#3a176e}
   </style>
 </head>
 <body>
@@ -95,6 +100,7 @@
         </div>
       </div>
 
+      <div class="section" data-section="home">
       <div class="energy card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
           <div style="font-weight:700">انرژی</div>
@@ -110,8 +116,9 @@
         <button id="dailyBtn" class="btn btn-primary">جایزهٔ روزانه</button>
         <button id="withdrawBtn" class="btn btn-accent" disabled>درخواست برداشت</button>
       </div>
+      </div>
 
-      <div class="shop card">
+      <div class="shop card section" data-section="shop">
         <h3>تقویت‌ها</h3>
         <div class="shop-grid">
           <div class="shop-item">
@@ -149,7 +156,7 @@
         </div>
       </div>
 
-      <div class="card" id="tonPacks" style="margin-top:10px">
+      <div class="card section" id="tonPacks" data-section="packs" style="margin-top:10px">
         <h3>پک‌های TON (۱ TON به بالا)</h3>
         <div class="subtle">هر 1 TON = <span class="mono" id="scorePerTon">10,000</span> امتیاز</div>
         <div class="actions" style="margin-top:10px">
@@ -164,13 +171,34 @@
         <div class="subtle" id="packInfo" style="margin-top:6px"></div>
       </div>
 
-      <div class="ref card">
+      <div class="ref card section" data-section="friends">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px">
           <div style="font-weight:700">دعوت دوستان</div>
           <button id="copyRef" class="btn" style="flex:none">کپی لینک دعوت</button>
         </div>
-        <div class="subtle">با هر کاربر فعال، جایزهٔ اضافه دریافت کن. (لوکال)</div>
+        <div class="subtle">با هر کاربر فعال، جایزهٔ اضافه دریافت کن.</div>
+        <div class="subtle">دعوت‌های تأییدشده: <span class="mono" id="invitedCount">0</span></div>
         <div class="subtle" id="referredBy" style="margin-top:6px"></div>
+      </div>
+
+      <div class="card section hidden" data-section="league">
+        <h3>لیگ</h3>
+        <div class="subtle">برترین‌ها</div>
+        <div id="leagueList" style="margin-top:8px; font-size:13px"></div>
+      </div>
+
+      <div class="card section hidden" data-section="tasks">
+        <h3>تسک‌ها</h3>
+        <div id="tasksList" style="margin-top:8px; font-size:13px"></div>
+      </div>
+
+      <div class="nav">
+        <button class="tab active" data-tab="home">بازی</button>
+        <button class="tab" data-tab="shop">فروشگاه</button>
+        <button class="tab" data-tab="packs">پک‌ها</button>
+        <button class="tab" data-tab="friends">دعوت</button>
+        <button class="tab" data-tab="league">لیگ</button>
+        <button class="tab" data-tab="tasks">تسک‌ها</button>
       </div>
     </div>
 
@@ -225,6 +253,9 @@
         copyRef: document.getElementById('copyRef'),
         referredBy: document.getElementById('referredBy'),
         toast: document.getElementById('toast'),
+        // sections
+        tabs: Array.from(document.querySelectorAll('.nav .tab')),
+        sections: Array.from(document.querySelectorAll('.section')),
       };
 
       let tonConnectUI = null;
@@ -353,6 +384,19 @@
         els.minerPriceTon.textContent = `${formatTon(priceTonMiner(state.upgrades.miner))} TON`;
 
         els.withdrawBtn.disabled = state.score < CLAIM_THRESHOLD || !connectedAddress;
+        // friends summary (server-driven optional)
+        if (document.getElementById('invitedCount')){
+          // lazy fetch from server if Telegram present
+          if (tgInitData && !updateUI._fetchedMe){
+            updateUI._fetchedMe = true;
+            fetch('/api/airdrop/me', { headers: { 'x-telegram-init-data': tgInitData }})
+              .then(r=>r.json()).then(d=>{
+                if (d?.ok && d.user){
+                  document.getElementById('invitedCount').textContent = (d.user.invitedCount||0);
+                }
+              }).catch(()=>{});
+          }
+        }
       }
 
       // Legacy point prices (unused for TON purchases, kept for reference)
@@ -659,6 +703,16 @@
             els.packInfo.textContent = '';
           }
         });
+
+        // tabs
+        const switchTab = (name)=>{
+          els.tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab === name));
+          els.sections.forEach(s=>{
+            const show = s.dataset.section === name;
+            s.classList.toggle('hidden', !show);
+          });
+        };
+        els.tabs.forEach(t=> t.addEventListener('click', ()=> switchTab(t.dataset.tab)));
       }
 
       function init(){
