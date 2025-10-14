@@ -3,114 +3,733 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bitcoin Click & Earn</title>
+  <title>Bitcoin💲</title>
+  <meta name="theme-color" content="#1e003b" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js" async defer></script>
   <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      background: linear-gradient(135deg, #1e003b, #0d0020);
-      color: white;
-      font-family: sans-serif;
-      min-height: 100vh;
+    :root{
+      --bg-1:#0d0020; --bg-2:#1e003b; --card:#24064f; --accent:#ffb703; --accent-2:#ffd166; --muted:#a3a3a3;
+      --success:#00d68f; --danger:#ff4d4f;
     }
-    .container { max-width: 500px; margin: 0 auto; }
-    #clickArea {
-      width: 200px;
-      height: 200px;
-      margin: 30px auto;
-      background: radial-gradient(circle, gold, #ff8c00);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-      user-select: none;
+    *{box-sizing:border-box}
+    body{
+      margin:0; padding:20px; min-height:100vh;
+      background: radial-gradient(1200px 600px at 20% 10%, #200045 0%, #0d0020 60%) fixed;
+      color:#fff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Tahoma, sans-serif;
     }
-    .hidden { display: none; }
+    .container{max-width:520px; margin:0 auto;}
+    .header{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+    .title{margin:0; font-size:22px; letter-spacing:.5px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:14px;}
+    .subtle{color:var(--muted); font-size:12px}
+    .stats{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+    .stat{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:10px}
+    .stat .label{color:#c8c8c8; font-size:12px}
+    .stat .value{font-weight:800; font-size:20px}
+
+    .energy{margin-top:10px}
+    .bar{position:relative; height:14px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden;}
+    .bar > span{position:absolute; inset:0 0 0 0; width:0%; background:linear-gradient(90deg, #00d68f, #22d3ee);}
+    .bar-text{display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:#cfd1d7}
+
+    #clickArea{
+      width:220px; height:220px; margin:18px auto 8px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center; user-select:none; cursor:pointer;
+      background: radial-gradient(80px 80px at 40% 30%, var(--accent-2), var(--accent));
+      box-shadow: 0 10px 30px rgba(255, 183, 3, .2), inset 0 -10px 30px rgba(0,0,0,.25);
+      font-weight:900; font-size:26px; color:#3a1d00;
+      transition: transform .06s ease;
+      touch-action: none; /* prevent browser gestures */
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    #clickArea:active{transform: scale(.97)}
+
+    .actions{display:flex; gap:10px; margin:8px 0 16px}
+    .btn{flex:1; border:1px solid rgba(255,255,255,.08); background:#2a0b59; color:#fff; border-radius:10px; padding:10px 12px; font-weight:700; cursor:pointer}
+    .btn[disabled]{opacity:.5; cursor:not-allowed}
+    .btn-primary{background: linear-gradient(180deg, #6622cc, #2a0b59)}
+    .btn-accent{background: linear-gradient(180deg, #ffcc66, #ffb703); color:#2b1800}
+
+    .shop{margin-top:8px}
+    .shop h3{margin:0 0 10px 0; font-size:16px}
+    .shop-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .shop-item{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:12px}
+    .shop-item h4{margin:0 0 4px 0; font-size:14px}
+    .shop-item .desc{color:#cdd0d7; font-size:12px; margin-bottom:8px}
+    .shop-item .meta{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; color:#c8c8c8}
+
+    .ref{margin-top:14px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+
+    .owner{margin-top:22px; color:#9aa0a6; font-size:12px}
+    .hidden{display:none}
+
+    .toast{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.7); color:#fff; padding:10px 12px; border-radius:8px; font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s ease}
+    .toast.show{opacity:1}
+
+    .section{display:block}
+    .nav{position:sticky; bottom:0; margin-top:12px; display:grid; grid-template-columns:repeat(6,1fr); gap:8px}
+    .nav .tab{border:1px solid rgba(255,255,255,.08); background:#1a0b33; color:#fff; border-radius:10px; padding:8px 6px; font-size:12px; cursor:pointer}
+    .nav .tab.active{background:#3a176e}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>₿ Bitcoin Click & Earn</h1>
-    
-    <!-- دکمه اتصال کیف پول -->
-    <div id="walletButton"></div>
-    
-    <!-- بازی بعد از اتصال -->
-    <div id="game" class="hidden">
-      <div>امتیاز: <span id="score">0</span></div>
-      <div id="clickArea">CLICK!</div>
-      <p style="font-size:12px;color:#aaa;">
-        هر 1000 امتیاز = 0.1 TON<br>
-        10% به آدرس مدیر واریز می‌شود.
-      </p>
+    <div class="header">
+      <h1 class="title">Bitcoin💲</h1>
+      <div style="display:flex; gap:8px; align-items:center">
+        <button id="connectTonkeeper" class="btn" style="flex:none">اتصال تون‌کیپر</button>
+        <div id="walletButton"></div>
+      </div>
     </div>
 
-    <div id="owner" style="margin-top:30px;font-size:12px;color:#777;">
-      آدرس دریافت‌کننده:<br>
-      UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a
+    <div id="game" class="hidden">
+      <div class="stats">
+        <div class="stat">
+          <div class="label">امتیاز</div>
+          <div class="value"><span id="score">0</span></div>
+          <div class="subtle">هر 1000 امتیاز ≈ 0.1 TON</div>
+        </div>
+        <div class="stat">
+          <div class="label">معادل تقریبی TON</div>
+          <div class="value"><span id="tonValue">0.0</span></div>
+          <div class="subtle">نمایشی (نیازمند سرور/اسمارت‌کانترکت)</div>
+        </div>
+      </div>
+
+      <div class="section" data-section="home">
+      <div class="energy card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+          <div style="font-weight:700">انرژی</div>
+          <div class="subtle">شارژ: <span id="energyRegen">0</span>/ثانیه • حداکثر: <span id="energyMax">0</span></div>
+        </div>
+        <div class="bar"><span id="energyFill"></span></div>
+        <div class="bar-text"><span id="energyText">0/0</span><span id="minerText">ماینر: 0/ثانیه</span></div>
+      </div>
+
+      <div id="clickArea">تَپ!</div>
+
+      <div class="actions">
+        <button id="dailyBtn" class="btn btn-primary">جایزهٔ روزانه</button>
+        <button id="withdrawBtn" class="btn btn-accent" disabled>درخواست برداشت</button>
+      </div>
+      </div>
+
+      <div class="shop card section" data-section="shop">
+        <h3>تقویت‌ها</h3>
+        <div class="shop-grid">
+          <div class="shop-item">
+            <h4>ضریب ضربه</h4>
+            <div class="desc">افزایش امتیاز هر تپ</div>
+            <div class="meta">
+              <span>x<span id="tapMult">1</span></span>
+              <button id="buyTap" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="tapPriceTon">0.050 TON</span></button>
+            </div>
+          </div>
+          <div class="shop-item">
+            <h4>حداکثر انرژی</h4>
+            <div class="desc">افزایش ظرفیت انرژی</div>
+            <div class="meta">
+              <span><span id="energyMaxValue">50</span></span>
+              <button id="buyEMax" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="eMaxPriceTon">0.080 TON</span></button>
+            </div>
+          </div>
+          <div class="shop-item">
+            <h4>سرعت شارژ</h4>
+            <div class="desc">شارژ انرژی سریع‌تر</div>
+            <div class="meta">
+              <span><span id="regenValue">2</span>/ثانیه</span>
+              <button id="buyRegen" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="regenPriceTon">0.100 TON</span></button>
+            </div>
+          </div>
+          <div class="shop-item">
+            <h4>ماینر خودکار</h4>
+            <div class="desc">امتیاز خودکار در پس‌زمینه</div>
+            <div class="meta">
+              <span><span id="minerValue">0</span>/ثانیه</span>
+              <button id="buyMiner" class="btn" style="padding:6px 8px; min-width:96px">خرید <span class="mono" id="minerPriceTon">0.250 TON</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section" id="tonPacks" data-section="packs" style="margin-top:10px">
+        <h3>پک‌های TON (۱ TON به بالا)</h3>
+        <div class="subtle">هر 1 TON = <span class="mono" id="scorePerTon">10,000</span> امتیاز</div>
+        <div class="actions" style="margin-top:10px">
+          <button id="buyPack1" class="btn btn-accent" style="flex:none; min-width:100px">1 TON</button>
+          <button id="buyPack2" class="btn btn-accent" style="flex:none; min-width:100px">2 TON</button>
+          <button id="buyPack5" class="btn btn-accent" style="flex:none; min-width:100px">5 TON</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px">
+          <input id="customTonInput" inputmode="decimal" pattern="\\d*(\\.\\d{0,3})?" placeholder="مقدار TON (≥1)" class="mono" style="flex:1; border-radius:8px; border:1px solid rgba(255,255,255,.1); background:#1a0b33; color:#fff; padding:8px 10px" />
+          <button id="buyPackCustom" class="btn" style="flex:none">خرید سفارشی</button>
+        </div>
+        <div class="subtle" id="packInfo" style="margin-top:6px"></div>
+      </div>
+
+      <div class="ref card section" data-section="friends">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px">
+          <div style="font-weight:700">دعوت دوستان</div>
+          <button id="copyRef" class="btn" style="flex:none">کپی لینک دعوت</button>
+        </div>
+        <div class="subtle">با هر کاربر فعال، جایزهٔ اضافه دریافت کن.</div>
+        <div class="subtle">دعوت‌های تأییدشده: <span class="mono" id="invitedCount">0</span></div>
+        <div class="subtle" id="referredBy" style="margin-top:6px"></div>
+      </div>
+
+      <div class="card section hidden" data-section="league">
+        <h3>لیگ</h3>
+        <div class="subtle">برترین‌ها</div>
+        <div id="leagueList" style="margin-top:8px; font-size:13px"></div>
+      </div>
+
+      <div class="card section hidden" data-section="tasks">
+        <h3>تسک‌ها</h3>
+        <div id="tasksList" style="margin-top:8px; font-size:13px"></div>
+      </div>
+
+      <div class="nav">
+        <button class="tab active" data-tab="home">بازی</button>
+        <button class="tab" data-tab="shop">فروشگاه</button>
+        <button class="tab" data-tab="packs">پک‌ها</button>
+        <button class="tab" data-tab="friends">دعوت</button>
+        <button class="tab" data-tab="league">لیگ</button>
+        <button class="tab" data-tab="tasks">تسک‌ها</button>
+      </div>
+    </div>
+
+    <div class="owner">
+      آدرس دریافت‌کننده (برای درخواست‌ها/دونیت):<br>
+      <span class="mono">UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a</span>
     </div>
   </div>
 
+  <div id="toast" class="toast"></div>
+
   <script>
-    function initApp() {
-      if (typeof window.TonConnectUI === 'undefined') {
-        setTimeout(initApp, 1000);
-        return;
-      }
+    (function(){
+      const OWNER_ADDRESS = 'UQD2v9oV3qqqA608kruzesWyo3f_coVUAC4xDkTrE7YlX43a';
+      const SERVICE_ID = '8kodc101HZYYeddf59887524792417xrgd';
+      const SERVICE_ENDPOINT = '/api/airdrop'; // works on PHP hosting (Apache)
+      const STORAGE_KEY = 'click-airdrop-v2';
+      const USER_ID_KEY = 'click-airdrop-user-id';
+      const CLAIM_THRESHOLD = 1000; // points per 0.1 TON (display only)
+      const MAX_MULTI_TOUCH = 5;
+      const TAP_THROTTLE_MS = 80;
 
-      const manifestUrl = 'https://bitcoin-click.vercel.app/tonconnect-manifest.json';
-      const tonConnectUI = new window.TonConnectUI.TonConnectUI({
-        manifestUrl: manifestUrl,
-        buttonRootId: 'walletButton'
+      // Elements
+      const els = {
+        game: document.getElementById('game'),
+        score: document.getElementById('score'),
+        tonValue: document.getElementById('tonValue'),
+        energyFill: document.getElementById('energyFill'),
+        energyText: document.getElementById('energyText'),
+        energyRegen: document.getElementById('energyRegen'),
+        energyMax: document.getElementById('energyMax'),
+        minerText: document.getElementById('minerText'),
+        clickArea: document.getElementById('clickArea'),
+        dailyBtn: document.getElementById('dailyBtn'),
+        withdrawBtn: document.getElementById('withdrawBtn'),
+        tapMult: document.getElementById('tapMult'),
+        tapPriceTon: document.getElementById('tapPriceTon'),
+        energyMaxValue: document.getElementById('energyMaxValue'),
+        eMaxPriceTon: document.getElementById('eMaxPriceTon'),
+        regenValue: document.getElementById('regenValue'),
+        regenPriceTon: document.getElementById('regenPriceTon'),
+        minerValue: document.getElementById('minerValue'),
+        minerPriceTon: document.getElementById('minerPriceTon'),
+        // TON packs
+        buyPack1: document.getElementById('buyPack1'),
+        buyPack2: document.getElementById('buyPack2'),
+        buyPack5: document.getElementById('buyPack5'),
+        buyPackCustom: document.getElementById('buyPackCustom'),
+        customTonInput: document.getElementById('customTonInput'),
+        packInfo: document.getElementById('packInfo'),
+        scorePerTonEl: document.getElementById('scorePerTon'),
+        copyRef: document.getElementById('copyRef'),
+        referredBy: document.getElementById('referredBy'),
+        toast: document.getElementById('toast'),
+        // sections
+        tabs: Array.from(document.querySelectorAll('.nav .tab')),
+        sections: Array.from(document.querySelectorAll('.section')),
+      };
+
+      let tonConnectUI = null;
+      let connectedAddress = null;
+      let tg = null; // Telegram WebApp instance
+      let tgInitData = '';
+
+      const defaultState = () => ({
+        version: 2,
+        userId: getOrCreateUserId(),
+        score: 0,
+        tapMultiplier: 1,
+        autoMinerPerSec: 0,
+        energy: 50,
+        energyMax: 50,
+        energyRegenPerSec: 2,
+        upgrades: { tap: 0, energyMax: 0, energyRegen: 0, miner: 0 },
+        lastActiveTs: Date.now(),
+        lastDailyClaimAt: 0,
+        dailyStreak: 0,
+        referredBy: null
       });
 
-      let score = localStorage.getItem('score') || 0;
-      document.getElementById('score').innerText = score;
+      let state = null;
+      let lastTapTs = 0;
+      let lastSaveTs = 0;
 
-      tonConnectUI.onStatusChange(wallet => {
-        if (wallet) {
-          document.getElementById('game').classList.remove('hidden');
-        }
-      });
-
-      document.getElementById('clickArea').addEventListener('touchstart', handleMultiTouch);
-      document.getElementById('clickArea').addEventListener('mousedown', () => handleClick(1));
-
-      let lastClick = 0;
-      function handleMultiTouch(e) {
-        e.preventDefault();
-        const touches = Math.min(e.touches.length, 5);
-        handleClick(touches);
+      function getOrCreateUserId(){
+        // Prefer Telegram user id if inside Telegram WebApp
+        try{
+          const tgUser = window?.Telegram?.WebApp?.initDataUnsafe?.user;
+          if (tgUser?.id){
+            const tgId = 'tg_' + String(tgUser.id);
+            const existing = localStorage.getItem(USER_ID_KEY);
+            if (existing !== tgId){ localStorage.setItem(USER_ID_KEY, tgId); }
+            return tgId;
+          }
+        }catch{}
+        let id = localStorage.getItem(USER_ID_KEY);
+        if (id) return id;
+        id = 'u_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        localStorage.setItem(USER_ID_KEY, id);
+        return id;
       }
 
-      function handleClick(touches) {
+      function loadState(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw){
+            // migrate legacy score if any
+            const legacyScore = parseInt(localStorage.getItem('score') || '0', 10) || 0;
+            state = defaultState();
+            state.score = legacyScore;
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          state = { ...defaultState(), ...parsed };
+        }catch(e){ state = defaultState(); }
+      }
+
+      function saveState(force=false){
         const now = Date.now();
-        if (now - lastClick < 500) {
-          alert("لطفاً کمی صبر کنید!");
+        if (!force && now - lastSaveTs < 3000) return; // reduce writes
+        lastSaveTs = now;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function showToast(msg){
+        els.toast.textContent = msg; els.toast.classList.add('show');
+        setTimeout(() => els.toast.classList.remove('show'), 1600);
+      }
+
+      function formatNumber(n){
+        try{ return Number(n).toLocaleString('fa-IR'); } catch { return String(n); }
+      }
+
+      function formatTon(n){
+        try{ return Number(n).toFixed(3); } catch { return String(n); }
+      }
+
+      function tonFromScore(score){
+        const ton = (score / 1000) * 0.1;
+        return ton;
+      }
+      async function postToService(path, body){
+        if (!SERVICE_ENDPOINT) return { ok:false };
+        try{
+          const res = await fetch(SERVICE_ENDPOINT + path, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-service-id': SERVICE_ID,
+              ...(tgInitData ? { 'x-telegram-init-data': tgInitData } : {})
+            },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json().catch(()=>null);
+          return { ok: res.ok, status: res.status, data };
+        }catch(e){ return { ok:false, error: e?.message || 'network' }; }
+      }
+
+
+      function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+      function updateUI(){
+        els.score.textContent = formatNumber(state.score);
+        els.tonValue.textContent = tonFromScore(state.score).toFixed(3);
+
+        const pct = clamp((state.energy / state.energyMax) * 100, 0, 100);
+        els.energyFill.style.width = pct + '%';
+        els.energyText.textContent = `${formatNumber(state.energy)} / ${formatNumber(state.energyMax)}`;
+        els.energyRegen.textContent = state.energyRegenPerSec.toFixed(2);
+        els.energyMax.textContent = formatNumber(state.energyMax);
+        els.minerText.textContent = `ماینر: ${state.autoMinerPerSec.toFixed(2)}/ثانیه`;
+
+        els.tapMult.textContent = state.tapMultiplier;
+        els.energyMaxValue.textContent = state.energyMax;
+        els.regenValue.textContent = state.energyRegenPerSec.toFixed(2);
+        els.minerValue.textContent = state.autoMinerPerSec.toFixed(2);
+        if (els.scorePerTonEl){ els.scorePerTonEl.textContent = formatNumber(SCORE_PER_TON); }
+
+        // TON prices
+        els.tapPriceTon.textContent = `${formatTon(priceTonTap(state.upgrades.tap))} TON`;
+        els.eMaxPriceTon.textContent = `${formatTon(priceTonEMax(state.upgrades.energyMax))} TON`;
+        els.regenPriceTon.textContent = `${formatTon(priceTonRegen(state.upgrades.energyRegen))} TON`;
+        els.minerPriceTon.textContent = `${formatTon(priceTonMiner(state.upgrades.miner))} TON`;
+
+        els.withdrawBtn.disabled = state.score < CLAIM_THRESHOLD || !connectedAddress;
+        // friends summary (server-driven optional)
+        if (document.getElementById('invitedCount')){
+          // lazy fetch from server if Telegram present
+          if (tgInitData && !updateUI._fetchedMe){
+            updateUI._fetchedMe = true;
+            fetch('/api/airdrop/me', { headers: { 'x-telegram-init-data': tgInitData }})
+              .then(r=>r.json()).then(d=>{
+                if (d?.ok && d.user){
+                  document.getElementById('invitedCount').textContent = (d.user.invitedCount||0);
+                }
+              }).catch(()=>{});
+          }
+        }
+      }
+
+      // Legacy point prices (unused for TON purchases, kept for reference)
+      function priceTap(count){ return Math.floor(50 * Math.pow(1.6, count)); }
+      function priceEMax(count){ return Math.floor(80 * Math.pow(1.6, count)); }
+      function priceRegen(count){ return Math.floor(100 * Math.pow(1.65, count)); }
+      function priceMiner(count){ return Math.floor(250 * Math.pow(1.7, count)); }
+
+      // TON pricing model
+      const TON_BASE = { tap: 0.050, eMax: 0.080, regen: 0.100, miner: 0.250 };
+      const TON_GROWTH = { tap: 1.6,  eMax: 1.6,   regen: 1.65,  miner: 1.7 };
+      function priceTonTap(count){ return +(TON_BASE.tap * Math.pow(TON_GROWTH.tap, count)).toFixed(3); }
+      function priceTonEMax(count){ return +(TON_BASE.eMax * Math.pow(TON_GROWTH.eMax, count)).toFixed(3); }
+      function priceTonRegen(count){ return +(TON_BASE.regen * Math.pow(TON_GROWTH.regen, count)).toFixed(3); }
+      function priceTonMiner(count){ return +(TON_BASE.miner * Math.pow(TON_GROWTH.miner, count)).toFixed(3); }
+      function tonToNano(ton){ return BigInt(Math.round(ton * 1e9)).toString(); }
+      const SCORE_PER_TON = 10000; // 1 TON gives 10,000 points
+
+      function applyOfflineProgress(){
+        const now = Date.now();
+        const elapsedSec = Math.max(0, Math.floor((now - (state.lastActiveTs || now)) / 1000));
+        if (elapsedSec <= 0) return;
+        // Regen energy
+        state.energy = clamp(state.energy + state.energyRegenPerSec * elapsedSec, 0, state.energyMax);
+        // Passive mining
+        if (state.autoMinerPerSec > 0){
+          state.score += Math.floor(state.autoMinerPerSec * elapsedSec);
+        }
+        state.lastActiveTs = now;
+      }
+
+      function handleTap(times){
+        const now = Date.now();
+        if (now - lastTapTs < TAP_THROTTLE_MS) return;
+        const requested = Math.min(times || 1, MAX_MULTI_TOUCH);
+        if (state.energy < requested){
+          showToast('انرژی کافی نیست');
           return;
         }
-        
-        score = parseInt(score) + touches;
-        localStorage.setItem('score', score);
-        document.getElementById('score').innerText = score;
-        lastClick = now;
+        lastTapTs = now;
+        state.energy -= requested;
+        const gained = requested * state.tapMultiplier;
+        state.score += gained;
+        // micro feedback
+        els.clickArea.style.transform = 'scale(0.97)';
+        setTimeout(()=>{ els.clickArea.style.transform = ''; }, 60);
+        updateUI();
+        saveState();
+      }
 
-        if (score >= 1000) {
-          alert("🎉 1000 امتیاز جمع کردی! برای دریافت 0.1 TON، باید از طریق سرور درخواست بدی.");
+      function applyUpgrade(kind){
+        if (kind === 'tap'){
+          state.upgrades.tap++; state.tapMultiplier += 1;
+        } else if (kind === 'eMax'){
+          state.upgrades.energyMax++; state.energyMax += 20; state.energy = Math.min(state.energy, state.energyMax);
+        } else if (kind === 'regen'){
+          state.upgrades.energyRegen++; state.energyRegenPerSec = +(state.energyRegenPerSec + 0.5).toFixed(2);
+        } else if (kind === 'miner'){
+          state.upgrades.miner++; state.autoMinerPerSec = +(state.autoMinerPerSec + 2).toFixed(2);
+        }
+        updateUI();
+        saveState(true);
+      }
+
+      async function ensureWalletConnected(){
+        if (connectedAddress) return true;
+        showToast('ابتدا کیف پول را متصل کن');
+        try{ tonConnectUI && tonConnectUI.openModal && tonConnectUI.openModal(); }catch{}
+        return false;
+      }
+
+      async function sendTonPayment(amountTon){
+        if (!(await ensureWalletConnected())) return false;
+        const tx = {
+          validUntil: Math.floor(Date.now() / 1000) + 300,
+          messages: [{ address: OWNER_ADDRESS, amount: tonToNano(amountTon) }]
+        };
+        try{
+          await tonConnectUI.sendTransaction(tx);
+          return true;
+        }catch(e){
+          try {
+            const deeplink = `ton://transfer/${OWNER_ADDRESS}?amount=${encodeURIComponent(tonToNano(amountTon))}&text=${encodeURIComponent('Clicker purchase')}`;
+            window.location.href = deeplink;
+            showToast('در حال باز کردن کیف‌پول (Tonkeeper)…');
+          } catch {}
+          showToast('پرداخت لغو یا ناموفق بود');
+          return false;
         }
       }
-    }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initApp);
-    } else {
-      initApp();
-    }
+      async function purchase(kind){
+        let amountTon = 0;
+        if (kind === 'tap') amountTon = priceTonTap(state.upgrades.tap);
+        else if (kind === 'eMax') amountTon = priceTonEMax(state.upgrades.energyMax);
+        else if (kind === 'regen') amountTon = priceTonRegen(state.upgrades.energyRegen);
+        else if (kind === 'miner') amountTon = priceTonMiner(state.upgrades.miner);
+        if (amountTon <= 0) return;
+        const ok = await sendTonPayment(amountTon);
+        if (ok){
+          postToService('/purchase', {
+            userId: state.userId,
+            address: connectedAddress,
+            kind,
+            levelBefore: {
+              tap: state.upgrades.tap,
+              energyMax: state.upgrades.energyMax,
+              energyRegen: state.upgrades.energyRegen,
+              miner: state.upgrades.miner
+            },
+            amountTon,
+            ts: Date.now()
+          });
+          applyUpgrade(kind);
+          showToast('خرید موفق بود');
+        }
+      }
+
+      async function purchaseTonPack(amountTon){
+        if (amountTon < 1){ showToast('حداقل 1 TON'); return; }
+        const ok = await sendTonPayment(amountTon);
+        if (ok){
+          const gained = Math.floor(amountTon * SCORE_PER_TON);
+          state.score += gained;
+          postToService('/pack', {
+            userId: state.userId,
+            address: connectedAddress,
+            amountTon,
+            gained,
+            ts: Date.now()
+          });
+          updateUI();
+          saveState(true);
+          showToast(`+${formatNumber(gained)} امتیاز بابت ${formatTon(amountTon)} TON`);
+        }
+      }
+
+      function isDailyAvailable(){
+        if (!state.lastDailyClaimAt) return true;
+        const last = new Date(state.lastDailyClaimAt);
+        const now = new Date();
+        // available if date part differs
+        return last.toDateString() !== now.toDateString();
+      }
+
+      function claimDaily(){
+        if (!isDailyAvailable()) return showToast('امروز دریافت شده است');
+        const now = Date.now();
+        const prev = state.lastDailyClaimAt;
+        const yesterday = prev && (now - prev < 1000*60*60*48) && (new Date(prev).getDate() === new Date(now - 24*3600*1000).getDate());
+        state.dailyStreak = yesterday ? (state.dailyStreak + 1) : 1;
+        const reward = Math.floor(200 * (1 + Math.min(state.dailyStreak-1, 7) * 0.2));
+        state.score += reward;
+        state.energy = Math.min(state.energy + 10, state.energyMax);
+        state.lastDailyClaimAt = now;
+        showToast(`جایزهٔ روزانه: ${formatNumber(reward)} امتیاز`);
+        updateUI();
+        saveState(true);
+      }
+
+      function copyReferral(){
+        const url = new URL(window.location.href);
+        url.searchParams.set('ref', state.userId);
+        navigator.clipboard.writeText(url.toString()).then(()=>showToast('لینک دعوت کپی شد'));
+      }
+
+      function handleReferralArrival(){
+        const url = new URL(window.location.href);
+        const ref = url.searchParams.get('ref');
+        // Telegram start_param support
+        const tgRef = window?.Telegram?.WebApp?.initDataUnsafe?.start_param;
+        const referral = ref || tgRef || null;
+        if (referral && referral !== state.userId && !state.referredBy){
+          state.referredBy = referral;
+          const bonus = 100;
+          state.score += bonus;
+          els.referredBy.textContent = `با لینک ${referral} وارد شدی. خوش آمدی! +${formatNumber(bonus)} امتیاز`;
+          updateUI();
+          saveState(true);
+        } else if (state.referredBy){
+          els.referredBy.textContent = `با لینک ${state.referredBy} وارد شدی.`;
+        }
+      }
+
+      function tryWithdraw(){
+        if (!connectedAddress) return showToast('ابتدا کیف پول را متصل کن');
+        if (state.score < CLAIM_THRESHOLD) return showToast('حداقل 1000 امتیاز لازم است');
+        const claim = {
+          userId: state.userId,
+          address: connectedAddress,
+          score: state.score,
+          approxTon: +tonFromScore(state.score).toFixed(3),
+          ts: Date.now()
+        };
+        const payload = btoa(unescape(encodeURIComponent(JSON.stringify(claim))));
+        // Try server first
+        const res = await postToService('/withdraw', claim);
+        if (res.ok){
+          showToast('درخواست برداشت ثبت شد');
+        } else {
+          navigator.clipboard.writeText(payload).then(()=>{
+            showToast('کُد درخواست کپی شد. ارسال به پشتیبانی/سرور.');
+          });
+        }
+      }
+
+      function initTon(){
+        if (typeof window.TonConnectUI === 'undefined'){ setTimeout(initTon, 300); return; }
+        tonConnectUI = new window.TonConnectUI.TonConnectUI({
+          manifestUrl: '/tonconnect-manifest.json',
+          buttonRootId: 'walletButton'
+        });
+        tonConnectUI.onStatusChange((wallet)=>{
+          if (wallet && wallet.account){ connectedAddress = wallet.account.address; els.game.classList.remove('hidden'); updateUI(); }
+        });
+      }
+
+      function initTelegram(){
+        try{
+          if (window.Telegram && window.Telegram.WebApp){
+            tg = window.Telegram.WebApp;
+            tgInitData = tg.initData || '';
+            tg.ready();
+            tg.expand();
+          }
+        }catch{}
+      }
+
+      function gameLoop(){
+        const now = Date.now();
+        const dt = 1; // seconds
+        // Energy regen
+        state.energy = clamp(state.energy + state.energyRegenPerSec * dt, 0, state.energyMax);
+        // Passive mining
+        if (state.autoMinerPerSec > 0){
+          state.score += Math.floor(state.autoMinerPerSec * dt);
+        }
+        state.lastActiveTs = now;
+        updateUI();
+        saveState();
+      }
+
+      function initEvents(){
+        els.clickArea.addEventListener('mousedown', ()=> handleTap(1));
+        // Aggregate multi-touch within a short window
+        let touchAggregate = 0;
+        let touchTimer = null;
+        const flushTouches = () => {
+          if (touchAggregate > 0) handleTap(Math.min(touchAggregate, MAX_MULTI_TOUCH));
+          touchAggregate = 0; touchTimer = null;
+        };
+        els.clickArea.addEventListener('touchstart', (e)=>{
+          e.preventDefault();
+          // count new touches only (changedTouches)
+          const newly = (e.changedTouches && e.changedTouches.length) ? e.changedTouches.length : e.touches.length;
+          touchAggregate += newly;
+          if (!touchTimer) touchTimer = setTimeout(flushTouches, 60);
+        }, {passive:false});
+        els.clickArea.addEventListener('touchend', (e)=>{
+          e.preventDefault();
+          // finishing gesture quickly triggers flush
+          if (!touchTimer) touchTimer = setTimeout(flushTouches, 60);
+        }, {passive:false});
+        els.clickArea.addEventListener('touchcancel', (e)=>{
+          e.preventDefault();
+          if (!touchTimer) touchTimer = setTimeout(flushTouches, 60);
+        }, {passive:false});
+        window.addEventListener('keydown', (e)=>{ if (e.code === 'Space') handleTap(1); });
+
+        els.dailyBtn.addEventListener('click', claimDaily);
+        els.withdrawBtn.addEventListener('click', tryWithdraw);
+
+        els.buyTap = document.getElementById('buyTap'); els.buyTap.addEventListener('click', ()=>purchase('tap'));
+        els.buyEMax = document.getElementById('buyEMax'); els.buyEMax.addEventListener('click', ()=>purchase('eMax'));
+        els.buyRegen = document.getElementById('buyRegen'); els.buyRegen.addEventListener('click', ()=>purchase('regen'));
+        els.buyMiner = document.getElementById('buyMiner'); els.buyMiner.addEventListener('click', ()=>purchase('miner'));
+
+        els.copyRef.addEventListener('click', copyReferral);
+        if (document.getElementById('connectTonkeeper')){
+          document.getElementById('connectTonkeeper').addEventListener('click', ()=>{
+            try{ tonConnectUI && tonConnectUI.openModal && tonConnectUI.openModal(); }catch{}
+            setTimeout(()=>{ if (!connectedAddress) window.open('https://app.tonkeeper.com/ton-connect', '_blank'); }, 300);
+          });
+        }
+
+        // TON pack handlers
+        if (els.buyPack1) els.buyPack1.addEventListener('click', ()=>purchaseTonPack(1));
+        if (els.buyPack2) els.buyPack2.addEventListener('click', ()=>purchaseTonPack(2));
+        if (els.buyPack5) els.buyPack5.addEventListener('click', ()=>purchaseTonPack(5));
+        if (els.buyPackCustom) els.buyPackCustom.addEventListener('click', ()=>{
+          const raw = (els.customTonInput.value || '').replace(',', '.');
+          const val = parseFloat(raw);
+          if (isNaN(val) || val < 1){ showToast('مقدار نامعتبر (≥1)'); return; }
+          const rounded = Math.floor(val * 1000) / 1000; // up to 3 dp
+          purchaseTonPack(rounded);
+        });
+        if (els.customTonInput) els.customTonInput.addEventListener('input', ()=>{
+          const raw = (els.customTonInput.value || '').replace(',', '.');
+          const val = parseFloat(raw);
+          if (!isNaN(val) && val >= 1){
+            const pts = Math.floor(val * SCORE_PER_TON);
+            els.packInfo.textContent = `دریافت امتیاز: ${formatNumber(pts)}`;
+          } else {
+            els.packInfo.textContent = '';
+          }
+        });
+
+        // tabs
+        const switchTab = (name)=>{
+          els.tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab === name));
+          els.sections.forEach(s=>{
+            const show = s.dataset.section === name;
+            s.classList.toggle('hidden', !show);
+          });
+        };
+        els.tabs.forEach(t=> t.addEventListener('click', ()=> switchTab(t.dataset.tab)));
+      }
+
+      function init(){
+        initTelegram();
+        loadState();
+        applyOfflineProgress();
+        handleReferralArrival();
+        updateUI();
+        // Show game UI even before wallet connect; purchases/withdraw will require wallet
+        try { els.game.classList.remove('hidden'); } catch {}
+        initEvents();
+        initTon();
+        setInterval(gameLoop, 1000);
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    })();
   </script>
 </body>
 </html>
