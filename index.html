@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bitcoin Click & Earn</title>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js" async defer></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js" async defer onerror="window.__tonErr=true"></script>
   <style>
     body {
       margin: 0;
@@ -59,6 +59,10 @@
   <script>
     function initApp() {
       if (typeof window.TonConnectUI === 'undefined') {
+        if (window.__tonErr) {
+          document.getElementById('walletButton').innerHTML = '<div style="padding:12px;background:#331;color:#ffb">بارگیری کتابخانه TonConnect از CDN ناموفق بود. VPN/اینترنت را بررسی کنید.</div>';
+          return;
+        }
         setTimeout(initApp, 1000);
         return;
       }
